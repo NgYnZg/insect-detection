@@ -1,0 +1,12 @@
+# Ignore compiled files
+*.pyc
+__pycache__/
+
+# Ignore environment file
+.env
+
+# Ignore logs
+*.log
+
+# Ignore media and uploads
+/media/

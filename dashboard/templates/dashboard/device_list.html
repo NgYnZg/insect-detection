@@ -1,0 +1,73 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">IoT Devices</h2>
+    {% if perms.auth.view_device_list %}
+        <a href="{% url 'add_device' %}" class="btn btn-success">Add New Device</a>
+    {% endif %}
+</div>
+
+<form id="deleteForm" method="POST" style="display:none;">
+    {% csrf_token %}
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover shadow-sm bg-white rounded">
+        <thead class="thead-light">
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Latitude</th>
+                <th scope="col">Longitude</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for device in devices %}
+            <tr>
+                <td><span class="badge badge-secondary">{{ device.id }}</span></td>
+                <td>{{ device.name }}</td>
+                <td>{{ device.latitude }}</td>
+                <td>{{ device.longitude }}</td>
+                <td>
+                    {% if perms.auth.edit_device %}
+                        <a href="{% url 'device_detail' device.id %}" class="btn btn-sm btn-outline-info">View</a>
+                    {% endif %}
+                    {% if perms.auth.delete_device %}
+                        <button type="button" class="btn btn-sm btn-outline-danger ml-1" onclick="confirmDelete({{ device.id }})">Delete</button>
+                    {% endif %}
+                    {% if not perms.auth.edit_device and not perms.auth.delete_device %}
+                        <span class="text-muted">No Access</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">No devices found.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function confirmDelete(deviceId) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "This will permanently delete the device and all associated data.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.getElementById('deleteForm');
+            form.action = `/dashboard/devices/${deviceId}/delete/`;
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

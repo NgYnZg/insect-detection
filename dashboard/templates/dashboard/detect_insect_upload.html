@@ -1,0 +1,93 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+    <div class="card shadow-sm border-0 p-4">
+        <h2 class="text-success mb-4">🪰 Insect Detection Upload</h2>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="image">Select an image:</label>
+                <input type="file" class="form-control-file" name="image" id="image" accept="image/*" required onchange="previewImage(event)">
+            </div>
+            <div class="form-group mt-3">
+                <label for="model">Select a model:</label>
+                <select class="form-control" name="model" id="model" required>
+                    <option value="">Choose a model...</option>
+                    {% for model in available_models %}
+                    <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="imagePreviewContainer" class="my-3 d-none">
+                <h5>Preview:</h5>
+                <img id="imagePreview" src="#" alt="Image preview" class="img-fluid rounded border" style="max-height: 300px;">
+            </div>
+            <button type="submit" class="btn btn-success mt-2">Detect</button>
+        </form>
+
+        {% if error %}
+        <div class="alert alert-danger mt-4">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        {% if detection_result %}
+        <hr class="my-4">
+        <h4 class="text-primary">🧪 Detection Results</h4>
+
+        <div class="row">
+            {% if original_image_url %}
+            <div class="col-md-6 text-center">
+                <h5>Original Image</h5>
+                <img src="{{ original_image_url }}" alt="Original Image" class="img-fluid rounded border" style="max-height: 400px;">
+            </div>
+            {% endif %}
+            {% if annotated_image_url %}
+            <div class="col-md-6 text-center">
+                <h5>Annotated Image</h5>
+                <img src="{{ annotated_image_url }}" alt="Annotated Image" class="img-fluid rounded border" style="max-height: 400px;">
+            </div>
+            {% endif %}
+        </div>
+
+        {% if detection_result|length > 0 %}
+        <h5 class="mt-4">🔍 Detected Objects:</h5>
+        <ul class="list-group">
+            {% for detection in detection_result %}
+            <li class="list-group-item">
+                <strong>{{ detection.class }}</strong><br>
+                Confidence: {{ detection.confidence|floatformat:2 }}<br>
+                BBox: {{ detection.bbox }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        
+        {% else %}
+        <div class="alert alert-warning mt-4">
+            No insects detected in the uploaded image.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function previewImage(event) {
+    const input = event.target;
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const preview = document.getElementById('imagePreview');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            previewContainer.classList.remove('d-none');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}

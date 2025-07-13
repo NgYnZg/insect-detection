@@ -1,0 +1,75 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<h2 class="mb-4">
+    Edit Device: {{ device.name }}
+    <div class="mt-2">
+    <span class="badge badge-secondary ml-2">ID: {{ device.id }}</span>
+    </div>
+</h2>
+
+<form method="POST" novalidate>
+    {% csrf_token %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="form-group">
+                <label for="deviceName">Name</label>
+                <input type="text" id="deviceName" name="name" value="{{ device.name }}" class="form-control" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="latitude">Latitude</label>
+                    <input type="text" id="latitude" name="latitude" value="{{ device.latitude }}" class="form-control" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="longitude">Longitude</label>
+                    <input type="text" id="longitude" name="longitude" value="{{ device.longitude }}" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="status">Status</label>
+                <input type="text" readonly name="status" id="status" class="form-control-plaintext text-muted" value="{{ device.status }}">
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    {% if perms.auth.edit_device %}
+                        <button type="submit" class="btn btn-success">Update</button>
+                    {% endif %}
+                    <a href="{% url 'device_list' %}" class="btn btn-secondary">Back to List</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<h4 class="mt-5 mb-3">Image Logs</h4>
+<div class="table-responsive">
+    <table class="table table-bordered table-hover bg-white shadow-sm">
+        <thead class="thead-light">
+            <tr>
+                <th scope="col">Image</th>
+                <th scope="col">Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for image in images %}
+            <tr>
+                <td>
+                    <img src="{{ image.file_path }}" class="img-fluid rounded" style="max-width: 500px;" alt="Image Log">
+                </td>
+                <td>{{ image.created_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="2" class="text-center text-muted">No image logs available.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

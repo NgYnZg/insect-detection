@@ -1,0 +1,33 @@
+{% load static %}
+
+{% block content %}
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<div class="d-flex justify-content-center align-items-center" style="min-height: 90vh;">
+  <div class="card shadow-sm p-4" style="width: 100%; max-width: 400px;">
+    <div class="text-center mb-4">
+      <img src="{% static 'logo.jpeg' %}" alt="Logo" class="mb-2" style="height: 60px;">
+      <h4 class="mb-0 text-success">Durian Farm Dashboard</h4>
+      <small class="text-muted">Login to your account</small>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.errors %}
+            <small class="text-danger">{{ field.errors.0 }}</small>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-success btn-block mt-3">Login</button>
+    </form>
+
+    <div class="text-center mt-3">
+      <a href="{% url 'register' %}">Don't have an account? Register</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Add New Device</h2>
+
+{% if perms.auth.edit_device %}
+<form method="POST" novalidate>
+    {% csrf_token %}
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="form-group">
+                <label for="deviceName">Device Name</label>
+                <input type="text" id="deviceName" name="name" class="form-control" placeholder="Enter device name" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="latitude">Latitude</label>
+                    <input type="text" id="latitude" name="latitude" class="form-control" placeholder="e.g. 5.4141" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="longitude">Longitude</label>
+                    <input type="text" id="longitude" name="longitude" class="form-control" placeholder="e.g. 100.3288" required>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+                <a href="{% url 'device_list' %}" class="btn btn-secondary mr-2">Cancel</a>
+                <button type="submit" class="btn btn-success">Create Device</button>
+            </div>
+        </div>
+    </div>
+</form>
+{% else %}
+<div class="alert alert-warning">
+    You do not have permission to add devices.
+</div>
+{% endif %}
+{% endblock %}
