@@ -29,10 +29,10 @@ The Durian Farm Dashboard is a full-stack web application designed to help farm 
 durian_farm_dashboard/
 ├── dashboard/           # Main app: views, templates, URLs, device & user management
 ├── detection/           # Detection logic, models, pest types, image handling
-├── durian_farm/         # Project settings, root URLs, WSGI/ASGI
+├── durian_farm/         # Project settings, root URLs
 ├── media/               # Uploaded images and files (served at /media/)
 ├── assets/              # Static assets (images, logos)
-├── Models/              # ML models for pest detection (YOLO, etc.)
+├── Models/              # ML models for pest detection (YOLO)
 ├── manage.py            # Django management script
 └── README.md            # Project documentation
 ```
@@ -100,15 +100,6 @@ python manage.py runserver
 - User passwords securely hashed
 - Permissions enforced for device management
 - Media and static files separated
-
----
-
-## 📝 Testing
-- Run all tests:
-```bash
-python manage.py test
-```
-- See `dashboard/tests.py` for test cases
 
 ---
 
