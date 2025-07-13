@@ -31,7 +31,6 @@ durian_farm_dashboard/
 ├── detection/           # Detection logic, models, pest types, image handling
 ├── durian_farm/         # Project settings, root URLs
 ├── media/               # Uploaded images and files (served at /media/)
-├── assets/              # Static assets (images, logos)
 ├── Models/              # ML models for pest detection (YOLO)
 ├── manage.py            # Django management script
 └── README.md            # Project documentation
