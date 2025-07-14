@@ -59,7 +59,7 @@
         {% for image in images %}
             <tr>
                 <td>
-                    <img src="{{ image.file_path }}" class="img-fluid rounded" style="max-width: 500px;" alt="Image Log">
+                    <img src="/media/{{ image.file_path }}" class="img-fluid rounded" style="max-width: 25%;" alt="Image Log">
                 </td>
                 <td>{{ image.created_at|date:"Y-m-d H:i" }}</td>
             </tr>
