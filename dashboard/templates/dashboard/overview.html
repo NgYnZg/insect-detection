@@ -1,6 +1,7 @@
 {% extends 'dashboard/base.html' %}
 
 {% block content %}
+
 <div class="row">
     <div class="col-md-6 mb-4">
         <div class="card border-success shadow-sm">
@@ -22,6 +23,33 @@
 
 <!-- Daily Logs Chart -->
 <div class="row mt-4">
+    <div class="col-12 mb-2">
+        <form id="pestTypeFilterForm" class="mb-3 col">
+            <label class="font-weight-bold mb-2" for="pestTypeDropdown">Filter Pest Types:</label>
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle text-left" type="button" id="pestTypeDropdownButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Select Pest Types
+                </button>
+                <div class="dropdown-menu" aria-labelledby="pestTypeDropdownButton" style="max-height: 250px; overflow-y: auto;">
+                    <div class="dropdown-item form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAllPestTypes">
+                        <label class="form-check-label font-weight-bold" for="selectAllPestTypes">Select All</label>
+                    </div>
+                    {% for pest_type in pest_type_names %}
+                        <div class="dropdown-item form-check">
+                            <input class="form-check-input pest-type-checkbox" type="checkbox" value="{{ pest_type }}" id="pestType{{ forloop.counter }}" checked>
+                            <label class="form-check-label" for="pestType{{ forloop.counter }}">{{ pest_type }}</label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </form>
+        
+        <div class="d-flex align-items-center mb-3">
+            <span class="font-weight-bold mr-2">Total Detections (Selected):</span>
+            <span id="totalDetections" class="badge badge-info py-2 px-3" style="font-size:1.2rem;">0</span>
+        </div>
+    </div>
     <div class="col-12">
         <div class="card shadow-sm chart-card">
             <div class="card-header bg-primary text-white">
@@ -92,26 +120,36 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('dailyLogsChart').getContext('2d');
-    
-    const chartData = {
-        labels: {{ chart_labels|safe }},
-        datasets: [{
-            label: 'Daily Detections',
-            data: {{ chart_data|safe }},
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.1)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: 'rgb(75, 192, 192)',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
-        }]
+    const allDatasets = {{ chart_datasets|safe }};
+    const chartLabels = {{ chart_labels|safe }};
+    const pestTypeTotals = {{ pest_type_totals|safe }};
+    const pestTypeNames = {{ pest_type_names|safe }};
+
+    // Helper to get selected pest types from dropdown
+    function getSelectedPestTypes() {
+        return Array.from(document.querySelectorAll('.pest-type-checkbox:checked')).map(el => el.value);
+    }
+
+    // Helper to filter datasets
+    function getFilteredDatasets(selected) {
+        return allDatasets.filter(ds => selected.includes(ds.label));
+    }
+
+    // Helper to update total
+    function updateTotal(selected) {
+        let total = 0;
+        selected.forEach(pt => {
+            total += pestTypeTotals[pt] || 0;
+        });
+        document.getElementById('totalDetections').textContent = total;
+    }
+
+    // Initial chart setup
+    let chartData = {
+        labels: chartLabels,
+        datasets: allDatasets
     };
-    
-        const config = {
+    let config = {
         type: 'line',
         data: chartData,
         options: {
@@ -185,22 +223,60 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     };
-    
-    const chart = new Chart(ctx, config);
-    
-    // Add no data message if chart is empty
-    if ({{ chart_data|safe }}.every(value => value === 0)) {
-        const centerX = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
-        const centerY = chart.chartArea.top + (chart.chartArea.bottom - chart.chartArea.top) / 2;
-        
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#6c757d';
-        ctx.fillText('No detection data available for the last 30 days', centerX, centerY);
-        ctx.restore();
+    let chart = new Chart(ctx, config);
+
+    // Initial total
+    updateTotal(getSelectedPestTypes());
+
+    // Filter logic
+    function updateChartAndTotal() {
+        const selected = getSelectedPestTypes();
+        chart.data.datasets = getFilteredDatasets(selected);
+        chart.update();
+        updateTotal(selected);
     }
+    // Attach event listeners to all pest type checkboxes
+    document.querySelectorAll('.pest-type-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', updateChartAndTotal);
+    });
+
+    // Select All logic
+    const selectAllCheckbox = document.getElementById('selectAllPestTypes');
+    function setAllPestTypeCheckboxes(checked) {
+        document.querySelectorAll('.pest-type-checkbox').forEach(function(cb) {
+            cb.checked = checked;
+        });
+    }
+    selectAllCheckbox.addEventListener('change', function() {
+        setAllPestTypeCheckboxes(this.checked);
+        updateChartAndTotal();
+    });
+    // If all pest type checkboxes are checked manually, check 'Select All'; if any are unchecked, uncheck 'Select All'
+    function syncSelectAllCheckbox() {
+        const allChecked = Array.from(document.querySelectorAll('.pest-type-checkbox')).every(cb => cb.checked);
+        selectAllCheckbox.checked = allChecked;
+    }
+    document.querySelectorAll('.pest-type-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', syncSelectAllCheckbox);
+    });
+    // Initialize 'Select All' state
+    syncSelectAllCheckbox();
+
+    // Add no data message if all datasets are empty
+    function showNoDataMessage() {
+        if (chart.data.datasets.length === 0 || chart.data.datasets.every(ds => ds.data.every(value => value === 0))) {
+            const centerX = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+            const centerY = chart.chartArea.top + (chart.chartArea.bottom - chart.chartArea.top) / 2;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#6c757d';
+            ctx.fillText('No detection data available for the last 30 days', centerX, centerY);
+            ctx.restore();
+        }
+    }
+    chart.options.plugins.afterDraw = showNoDataMessage;
 });
 </script>
 {% endblock %}

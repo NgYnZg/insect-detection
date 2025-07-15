@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from detection.models import Device, Detection
+from detection.models import Device, Detection, PestType
 from detection.InsectDetector import InsectDetector
 import requests
 from django.http import Http404
@@ -29,40 +29,84 @@ def overview(request):
     # Get daily logs data for the last 30 days
     end_date = timezone.now().date()
     start_date = end_date - timedelta(days=29)
-    
-    daily_logs = Detection.objects.filter(
-        image__device__is_deleted=False,
-        created_at__date__gte=start_date,
-        created_at__date__lte=end_date
-    ).values('created_at__date').annotate(
-        count=Count('id')
-    ).order_by('created_at__date')
-    
-    # Prepare chart data
+
+    # Get all pest types
+    pest_types = list(PestType.objects.all())
+    pest_type_names = [pt.name for pt in pest_types]
+    # Prepare date labels
     chart_labels = []
-    chart_data = []
-    
+    date_list = []
     current_date = start_date
     while current_date <= end_date:
         chart_labels.append(current_date.strftime('%b %d'))
-        
-        # Find data for this date
-        day_data = next((item for item in daily_logs if item['created_at__date'] == current_date), None)
-        chart_data.append(day_data['count'] if day_data else 0)
-        
+        date_list.append(current_date)
         current_date += timedelta(days=1)
-    
-    # If no data exists, show a message in the chart
-    if sum(chart_data) == 0:
+
+    # Prepare a dataset for each pest type
+    chart_datasets = []
+    color_palette = [
+        'rgb(75, 192, 192)', 'rgb(255, 99, 132)', 'rgb(255, 205, 86)',
+        'rgb(54, 162, 235)', 'rgb(153, 102, 255)', 'rgb(255, 159, 64)',
+        'rgb(201, 203, 207)', 'rgb(0, 200, 83)', 'rgb(255, 87, 34)',
+        'rgb(121, 85, 72)', 'rgb(233, 30, 99)', 'rgb(63, 81, 181)'
+    ]
+    for idx, pest_type in enumerate(pest_types):
+        # Get daily logs for this pest type
+        daily_logs = Detection.objects.filter(
+            image__device__is_deleted=False,
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date,
+            pest_type=pest_type
+        ).values('created_at__date').annotate(
+            count=Count('id')
+        ).order_by('created_at__date')
+        # Map date to count
+        date_to_count = {item['created_at__date']: item['count'] for item in daily_logs}
+        data = [date_to_count.get(date, 0) for date in date_list]
+        chart_datasets.append({
+            'label': pest_type.name,
+            'data': data,
+            'borderColor': color_palette[idx % len(color_palette)],
+            'backgroundColor': color_palette[idx % len(color_palette)],
+            'borderWidth': 3,
+            'fill': False,
+            'tension': 0.4,
+            'pointBackgroundColor': color_palette[idx % len(color_palette)],
+            'pointBorderColor': '#fff',
+            'pointBorderWidth': 2,
+            'pointRadius': 5,
+            'pointHoverRadius': 7
+        })
+
+    # If no pest types or no data, show a message in the chart
+    if not chart_datasets or all(all(v == 0 for v in ds['data']) for ds in chart_datasets):
         chart_labels = ['No Data']
-        chart_data = [0]
-    
+        chart_datasets = [{
+            'label': 'No Data',
+            'data': [0],
+            'borderColor': 'rgb(200,200,200)',
+            'backgroundColor': 'rgb(200,200,200)',
+            'borderWidth': 3,
+            'fill': False,
+            'tension': 0.4,
+            'pointBackgroundColor': 'rgb(200,200,200)',
+            'pointBorderColor': '#fff',
+            'pointBorderWidth': 2,
+            'pointRadius': 5,
+            'pointHoverRadius': 7
+        }]
+
+    # Now chart_datasets is defined, so assign pest_type_totals
+    pest_type_totals = {pt.name: sum(ds['data']) for pt, ds in zip(pest_types, chart_datasets)}
+
     return render(request, 'dashboard/overview.html', {
         'total_devices': total_devices,
         'total_logs': total_logs,
         'recent_logs': recent_logs,
         'chart_labels': json.dumps(chart_labels),
-        'chart_data': json.dumps(chart_data),
+        'chart_datasets': json.dumps(chart_datasets),
+        'pest_type_names': pest_type_names,
+        'pest_type_totals': pest_type_totals,
     })
 
 @login_required

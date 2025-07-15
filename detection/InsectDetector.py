@@ -41,7 +41,7 @@ class InsectDetector:
         self.model = YOLO(model_path)
         self.model.to(self.device)
 
-    def detect(self, image: Union[str, np.ndarray], conf_threshold: float = 0.25) -> List[Dict]:
+    def detect(self, image: Union[str, np.ndarray], conf_threshold: float = 0.30) -> List[Dict]:
         """
         Performs object detection on the input image.
 
@@ -80,7 +80,7 @@ class InsectDetector:
 
         return detections
 
-    def detect_with_annotations(self, image: Union[str, np.ndarray], conf_threshold: float = 0.25) -> Tuple[List[Dict], np.ndarray]:
+    def detect_with_annotations(self, image: Union[str, np.ndarray], conf_threshold: float = 0.30) -> Tuple[List[Dict], np.ndarray]:
         """
         Performs object detection and returns both detections and annotated image.
 

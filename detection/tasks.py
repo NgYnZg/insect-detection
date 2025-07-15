@@ -1,5 +1,5 @@
 import logging
-from .models import Device, Image
+from .models import Device, Image, Detection, PestType
 from datetime import datetime
 from .InsectDetector import InsectDetector
 from django.utils import timezone
@@ -55,6 +55,25 @@ def process_image(device_id, image: UploadedFile):
         )
         if not device_image:
             raise ValueError(f"Error occurred in image processing phase.")
+        # Save Detection objects for each detection result
+        for detection in results:
+            class_name = detection.get('class')
+            confidence = detection.get('confidence')
+            bbox = detection.get('bbox', [None, None, None, None])
+            xmin, ymin, xmax, ymax = bbox
+            bbox_width = xmax - xmin if xmax is not None and xmin is not None else None
+            bbox_height = ymax - ymin if ymax is not None and ymin is not None else None
+            # Get or create PestType by class name
+            pest_type, _ = PestType.objects.get_or_create(name=class_name, defaults={'description': class_name})
+            Detection.objects.create(
+                image=device_image,
+                pest_type=pest_type,
+                confidence=confidence,
+                bbox_x=xmin,
+                bbox_y=ymin,
+                bbox_width=bbox_width,
+                bbox_height=bbox_height
+            )
         logger.info(f"{results}")
         # else:
         #     results['result_image'] = device_image
