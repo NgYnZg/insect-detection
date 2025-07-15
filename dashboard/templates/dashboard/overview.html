@@ -24,23 +24,32 @@
 <!-- Daily Logs Chart -->
 <div class="row mt-4">
     <div class="col-12 mb-2">
-        <form id="pestTypeFilterForm" class="mb-3 col">
-            <label class="font-weight-bold mb-2" for="pestTypeDropdown">Filter Pest Types:</label>
-            <div class="dropdown">
-                <button class="btn btn-outline-primary dropdown-toggle text-left" type="button" id="pestTypeDropdownButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Select Pest Types
-                </button>
-                <div class="dropdown-menu" aria-labelledby="pestTypeDropdownButton" style="max-height: 250px; overflow-y: auto;">
-                    <div class="dropdown-item form-check">
-                        <input class="form-check-input" type="checkbox" id="selectAllPestTypes">
-                        <label class="form-check-label font-weight-bold" for="selectAllPestTypes">Select All</label>
-                    </div>
-                    {% for pest_type in pest_type_names %}
+        <form id="pestTypeFilterForm" class="mb-3 col" method="get">
+            <div class="d-flex flex-wrap align-items-center mb-2">
+                <label class="font-weight-bold mr-2 mb-0" for="timeRangeSelect">Time Range:</label>
+                <select id="timeRangeSelect" name="range" class="form-control mr-3" style="width:auto; display:inline-block;">
+                    <option value="hourly" {% if selected_range == 'hourly' %}selected{% endif %}>Hourly (Last 24h)</option>
+                    <option value="daily" {% if selected_range == 'daily' %}selected{% endif %}>Daily (Last 30d)</option>
+                    <option value="monthly" {% if selected_range == 'monthly' %}selected{% endif %}>Monthly (Last 12mo)</option>
+                    <option value="all" {% if selected_range == 'all' %}selected{% endif %}>All (Monthly)</option>
+                </select>
+                <label class="font-weight-bold mb-0 ml-2" for="pestTypeDropdown">Filter Pest Types:</label>
+                <div class="dropdown ml-2">
+                    <button class="btn btn-outline-primary dropdown-toggle text-left" type="button" id="pestTypeDropdownButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Select Pest Types
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="pestTypeDropdownButton" style="max-height: 250px; overflow-y: auto;">
                         <div class="dropdown-item form-check">
-                            <input class="form-check-input pest-type-checkbox" type="checkbox" value="{{ pest_type }}" id="pestType{{ forloop.counter }}" checked>
-                            <label class="form-check-label" for="pestType{{ forloop.counter }}">{{ pest_type }}</label>
+                            <input class="form-check-input" type="checkbox" id="selectAllPestTypes">
+                            <label class="form-check-label font-weight-bold" for="selectAllPestTypes">Select All</label>
                         </div>
-                    {% endfor %}
+                        {% for pest_type in pest_type_names %}
+                            <div class="dropdown-item form-check">
+                                <input class="form-check-input pest-type-checkbox" type="checkbox" value="{{ pest_type }}" id="pestType{{ forloop.counter }}" checked>
+                                <label class="form-check-label" for="pestType{{ forloop.counter }}">{{ pest_type }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </form>
@@ -277,6 +286,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     chart.options.plugins.afterDraw = showNoDataMessage;
+
+    // Time range filter: reload page on change
+    document.getElementById('timeRangeSelect').addEventListener('change', function() {
+        document.getElementById('pestTypeFilterForm').submit();
+    });
 });
 </script>
 {% endblock %}

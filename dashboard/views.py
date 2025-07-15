@@ -13,6 +13,8 @@ from django.db.models import Count
 from django.utils import timezone
 from datetime import timedelta
 import json
+from django.core.paginator import Paginator
+from django.db.models.functions import TruncHour, TruncDay, TruncMonth
 
 @login_required
 @permission_required('auth.view_dashboard', raise_exception=True)
@@ -26,21 +28,71 @@ def overview(request):
         image__device__is_deleted=False
     ).order_by('-created_at')[:10]
     
-    # Get daily logs data for the last 30 days
-    end_date = timezone.now().date()
-    start_date = end_date - timedelta(days=29)
+    # Get time range filter from GET params
+    selected_range = request.GET.get('range', 'daily')
 
     # Get all pest types
     pest_types = list(PestType.objects.all())
     pest_type_names = [pt.name for pt in pest_types]
-    # Prepare date labels
+
+    # Prepare chart labels and date list based on range
+    now = timezone.now()
     chart_labels = []
     date_list = []
-    current_date = start_date
-    while current_date <= end_date:
-        chart_labels.append(current_date.strftime('%b %d'))
-        date_list.append(current_date)
-        current_date += timedelta(days=1)
+    if selected_range == 'hourly':
+        # Last 24 hours
+        start = now - timedelta(hours=23)
+        for i in range(24):
+            dt = (start + timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+            chart_labels.append(dt.strftime('%H:00'))
+            date_list.append(dt)
+        trunc = TruncHour('created_at', tzinfo=timezone.get_current_timezone())
+        group_by = 'hour'
+    elif selected_range == 'monthly':
+        # Last 12 months
+        months = []
+        y, m = now.year, now.month
+        for _ in range(12):
+            months.append((y, m))
+            m -= 1
+            if m == 0:
+                m = 12
+                y -= 1
+        months.reverse()
+        for y, m in months:
+            dt = timezone.datetime(y, m, 1, tzinfo=timezone.get_current_timezone())
+            chart_labels.append(dt.strftime('%b %Y'))
+            date_list.append(dt)
+        trunc = TruncMonth('created_at', tzinfo=timezone.get_current_timezone())
+        group_by = 'month'
+    elif selected_range == 'all':
+        # All time, group by month
+        first = Detection.objects.order_by('created_at').first()
+        if first:
+            start = first.created_at.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            months = []
+            while start <= end:
+                months.append(start)
+                chart_labels.append(start.strftime('%b %Y'))
+                start = (start + timedelta(days=32)).replace(day=1)
+            date_list = months
+        else:
+            chart_labels = []
+            date_list = []
+        trunc = TruncMonth('created_at', tzinfo=timezone.get_current_timezone())
+        group_by = 'month'
+    else:
+        # Default: daily, last 30 days
+        end_date = now.date()
+        start_date = end_date - timedelta(days=29)
+        current_date = start_date
+        while current_date <= end_date:
+            chart_labels.append(current_date.strftime('%b %d'))
+            date_list.append(current_date)
+            current_date += timedelta(days=1)
+        trunc = TruncDay('created_at', tzinfo=timezone.get_current_timezone())
+        group_by = 'day'
 
     # Prepare a dataset for each pest type
     chart_datasets = []
@@ -51,18 +103,31 @@ def overview(request):
         'rgb(121, 85, 72)', 'rgb(233, 30, 99)', 'rgb(63, 81, 181)'
     ]
     for idx, pest_type in enumerate(pest_types):
-        # Get daily logs for this pest type
-        daily_logs = Detection.objects.filter(
+        # Get logs for this pest type and range
+        qs = Detection.objects.filter(
             image__device__is_deleted=False,
-            created_at__date__gte=start_date,
-            created_at__date__lte=end_date,
             pest_type=pest_type
-        ).values('created_at__date').annotate(
-            count=Count('id')
-        ).order_by('created_at__date')
-        # Map date to count
-        date_to_count = {item['created_at__date']: item['count'] for item in daily_logs}
-        data = [date_to_count.get(date, 0) for date in date_list]
+        )
+        if selected_range == 'hourly':
+            qs = qs.filter(created_at__gte=now - timedelta(hours=23))
+        elif selected_range == 'monthly':
+            qs = qs.filter(created_at__gte=now - timedelta(days=365))
+        # For 'all', no filter
+        elif selected_range == 'daily':
+            qs = qs.filter(created_at__date__gte=now.date() - timedelta(days=29))
+        # Group and count
+        daily_logs = qs.annotate(period=trunc).values('period').annotate(count=Count('id')).order_by('period')
+        date_to_count = {}
+        for item in daily_logs:
+            key = item['period']
+            if group_by == 'hour':
+                key = key.replace(minute=0, second=0, microsecond=0)
+            elif group_by == 'day':
+                key = key.date()
+            elif group_by == 'month':
+                key = key.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            date_to_count[key] = item['count']
+        data = [date_to_count.get(dt, 0) for dt in date_list]
         chart_datasets.append({
             'label': pest_type.name,
             'data': data,
@@ -107,6 +172,7 @@ def overview(request):
         'chart_datasets': json.dumps(chart_datasets),
         'pest_type_names': pest_type_names,
         'pest_type_totals': pest_type_totals,
+        'selected_range': selected_range,
     })
 
 @login_required
@@ -158,9 +224,12 @@ def device_detail(request, device_id):
         device.save()
         return redirect('device_detail', device_id=device.id)
     images = device.images.order_by('-created_at')
+    paginator = Paginator(images, 5)  # Show 5 images per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     return render(request, 'dashboard/device_detail.html', {
         'device': device,
-        'images': images
+        'page_obj': page_obj
     })
 
 def detect_insect_upload(request):
