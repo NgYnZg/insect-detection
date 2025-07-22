@@ -221,8 +221,10 @@ def device_detail(request, device_id):
         device.name = request.POST.get('name')
         device.latitude = request.POST.get('latitude')
         device.longitude = request.POST.get('longitude')
+        # Update status from checkbox
+        device.status = bool(request.POST.get('status'))
         device.save()
-        return redirect('device_detail', device_id=device.id)
+        return redirect('device_list')
     images = device.images.order_by('-created_at')
     paginator = Paginator(images, 5)  # Show 5 images per page
     page_number = request.GET.get('page')
@@ -231,6 +233,23 @@ def device_detail(request, device_id):
         'device': device,
         'page_obj': page_obj
     })
+
+@login_required
+@permission_required('auth.view_device_list', raise_exception=True)
+def recover_devices(request):
+    devices = Device.objects.filter(is_deleted=True).order_by('id')
+    return render(request, 'dashboard/recover_device_list.html', {'devices': devices})
+
+@login_required
+@permission_required('auth.edit_device', raise_exception=True)
+def recover_device(request):
+    if request.method == 'POST':
+        device_id = request.POST.get('device_id')
+        if device_id:
+            device = get_object_or_404(Device, id=device_id, is_deleted=True)
+            device.is_deleted = False
+            device.save()
+    return redirect('recover_devices')
 
 def detect_insect_upload(request):
     detection_result = None

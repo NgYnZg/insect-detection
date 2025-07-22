@@ -17,7 +17,7 @@ def save_image(annotated_img, filename, annotated=False):
     """
     Save the image to the media directory and return the URL.
     """
-    directory = "origianl_images"
+    directory = "original_images"
     if annotated_img is not None and annotated is True:
         # Create filename for annotated image
         name, ext = os.path.splitext(filename)

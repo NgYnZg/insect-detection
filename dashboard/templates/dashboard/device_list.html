@@ -3,9 +3,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">IoT Devices</h2>
+    <div>
     {% if perms.auth.view_device_list %}
         <a href="{% url 'add_device' %}" class="btn btn-success">Add New Device</a>
+            <a href="{% url 'recover_devices' %}" class="btn btn-warning ml-2">Recover Devices</a>
     {% endif %}
+    </div>
 </div>
 
 <form id="deleteForm" method="POST" style="display:none;">
@@ -20,6 +23,7 @@
                 <th scope="col">Name</th>
                 <th scope="col">Latitude</th>
                 <th scope="col">Longitude</th>
+                <th scope="col">Status</th>
                 <th scope="col">Actions</th>
             </tr>
         </thead>
@@ -30,6 +34,11 @@
                 <td>{{ device.name }}</td>
                 <td>{{ device.latitude }}</td>
                 <td>{{ device.longitude }}</td>
+                <td>
+                    <span class="badge badge-{% if device.status %}success{% else %}secondary{% endif %}">
+                        {{ device.status|yesno:"Active,Inactive" }}
+                    </span>
+                </td>
                 <td>
                     {% if perms.auth.edit_device %}
                         <a href="{% url 'device_detail' device.id %}" class="btn btn-sm btn-outline-info">View</a>

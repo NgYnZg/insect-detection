@@ -25,7 +25,11 @@
                 <h5>Preview:</h5>
                 <img id="imagePreview" src="#" alt="Image preview" class="img-fluid rounded border" style="max-height: 300px;">
             </div>
-            <button type="submit" class="btn btn-success mt-2">Detect</button>
+            <button type="submit" class="btn btn-success mt-2" id="detectBtn" onclick="showSpinner()">Detect</button>
+            <div id="loadingSpinner" class="mt-2" style="display:none;">
+                <span class="spinner-border spinner-border-sm text-success" role="status" aria-hidden="true"></span>
+                <span class="ml-2">Detecting...</span>
+            </div>
         </form>
 
         {% if error %}
@@ -88,6 +92,10 @@ function previewImage(event) {
         };
         reader.readAsDataURL(input.files[0]);
     }
+}
+
+function showSpinner() {
+    document.getElementById('loadingSpinner').style.display = 'block';
 }
 </script>
 {% endblock %}

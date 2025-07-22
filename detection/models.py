@@ -8,7 +8,6 @@ class Device(models.Model):
     longitude = models.CharField(max_length=100)
     status = models.BooleanField(default=True)
     last_connected = models.DateTimeField(default=None, null=True)
-    last_disconnected = models.DateTimeField(default=None, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default=False)
 

@@ -10,4 +10,6 @@ urlpatterns = [
     path('detect-insect-upload/', views.detect_insect_upload, name='detect_insect_upload'),
     path('profile/', views.profile, name='profile'),
     path('change-password/', views.change_password, name='change_password'),
+    path('devices/recover/', views.recover_devices, name='recover_devices'),
+    path('devices/recover-action/', views.recover_device, name='recover_device'),
 ]

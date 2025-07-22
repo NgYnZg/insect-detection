@@ -1,0 +1,72 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Recover Deleted Devices</h2>
+    <a href="{% url 'device_list' %}" class="btn btn-secondary">Back to Device List</a>
+</div>
+
+<form id="recoverForm" method="POST" style="display:none;">
+    {% csrf_token %}
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover shadow-sm bg-white rounded">
+        <thead class="thead-light">
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Latitude</th>
+                <th scope="col">Longitude</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for device in devices %}
+            <tr>
+                <td><span class="badge badge-secondary">{{ device.id }}</span></td>
+                <td>{{ device.name }}</td>
+                <td>{{ device.latitude }}</td>
+                <td>{{ device.longitude }}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="confirmRecover({{ device.id }})">Recover</button>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">No deleted devices found.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function confirmRecover(deviceId) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "This will recover the device and make it active again.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, recover it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.getElementById('recoverForm');
+            form.action = '{% url 'recover_device' %}';
+            // Remove any existing hidden input
+            let input = form.querySelector('input[name="device_id"]');
+            if (input) input.remove();
+            // Add device_id as hidden input
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'device_id';
+            input.value = deviceId;
+            form.appendChild(input);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %} 

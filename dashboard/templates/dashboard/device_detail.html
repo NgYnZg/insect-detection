@@ -31,7 +31,10 @@
 
             <div class="form-group">
                 <label for="status">Status</label>
-                <input type="text" readonly name="status" id="status" class="form-control-plaintext text-muted" value="{{ device.status }}">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="status" name="status" value="True" {% if device.status %}checked{% endif %}>
+                    <label class="custom-control-label" for="status">{{ device.status|yesno:"Active,Inactive" }}</label>
+                </div>
             </div>
 
             <div class="d-flex justify-content-between mt-4">

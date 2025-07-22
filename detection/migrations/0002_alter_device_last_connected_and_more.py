@@ -15,9 +15,4 @@ class Migration(migrations.Migration):
             name='last_connected',
             field=models.DateTimeField(default=None, null=True),
         ),
-        migrations.AlterField(
-            model_name='device',
-            name='last_disconnected',
-            field=models.DateTimeField(default=None, null=True),
-        ),
     ]
